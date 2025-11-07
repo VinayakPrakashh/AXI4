@@ -13,13 +13,18 @@ module APB_MASTER #(
     input [DATA_WIDTH-1:0] PRDATA,
     input PREADY,
     input PSLVERR,
-    // Control signals
+    // Control signals AXI4 to APB
     input transfer,
     input read,
     input write,
-
-
+    // axi4 inputs for simulation purposes
+    input [ADDR_WIDTH-1:0] apb_waddr,
+    input [ADDR_WIDTH-1:0] apb_raddr,
+    input [DATA_WIDTH-1:0] apb_wdata,
+    output reg [DATA_WIDTH-1:0] apb_rdata
 );
+
+wire error;
 reg [1:0] state, next_state;
 
 parameter IDLE = 2'b00,
@@ -34,18 +39,63 @@ end
 
 always @(*) begin
     case (state)
-    IDLE:
+    IDLE: begin
         if (transfer) // Start condition
             next_state = SETUP;
         else
             next_state = IDLE;
+    end
     SETUP:
         next_state = ACCESS;
-    ACCESS:
-        if (PREADY)
+    ACCESS: begin
+        if (PREADY && !transfer)
             next_state = IDLE;
+        else if(PREADY && transfer)
+            next_state = SETUP;
         else
             next_state = ACCESS;
+    end
     endcase
 end
+
+always @(posedge PCLK) begin
+ if (!PRESETn) begin
+        PSEL    <= 1'b0;
+        PENABLE <= 1'b0;
+        PWRITE  <= 1'b0;
+        PADDR   <= {ADDR_WIDTH{1'b0}};
+        PWDATA  <= {DATA_WIDTH{1'b0}};
+        apb_rdata <= {DATA_WIDTH{1'b0}};
+    end else begin
+ case (state)
+    IDLE: begin
+        PSEL <= 1'b0;
+    end 
+    SETUP: begin
+        PSEL <= 1'b1;
+        PENABLE <= 1'b0;
+        if(write) begin
+            PWRITE <= 1'b1;
+            PADDR <= apb_waddr;
+            PWDATA <= apb_wdata;
+        end else if(read) begin
+            PWRITE <= 1'b0;
+            PADDR <= apb_raddr;
+        end
+    end
+    ACCESS: begin
+        PENABLE <= 1'b1;
+        if(!PWRITE && PREADY) begin
+            apb_rdata <= PRDATA;
+        end
+    end
+    default: begin
+        PSEL <= 1'b0;
+        PENABLE <= 1'b0;
+    end
+ endcase
+    end
+end
+
+assign error = PSLVERR & PSEL & PENABLE; //just for future use
 endmodule

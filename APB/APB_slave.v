@@ -5,21 +5,23 @@ module APB_slave1 #(
     input PCLK,
     input PRESETn,
     // APB Slave Interface
-    input PSEL_S1,
-    input PENABLE_S,
-    input read,
-    input write,
-    input [ADDR_WIDTH-1:0] PADDR_S,
-    input [DATA_WIDTH-1:0] PWDATA_S,
-    output reg [DATA_WIDTH-1:0] PRDATA_S,
-    output reg PREADY_S
+    input PSEL,
+    input PENABLE,
+    input PWRITE,
+    input [ADDR_WIDTH-1:0] PADDR,
+    input [DATA_WIDTH-1:0] PWDATA,
+    output reg [DATA_WIDTH-1:0] PRDATA,
+    output reg PREADY,
+    output reg PSLVERR
 );
 
 // Simple memory array for APB slave
-reg [DATA_WIDTH-1:0] memory_array [0:1];
+reg [DATA_WIDTH-1:0] memory_array [0:3];
 initial begin
     memory_array[0] = 32'h00000001;
     memory_array[1] = 32'h00000010;
+    memory_array[2] = 32'h00000100;
+    memory_array[3] = 32'h00001000;
 end
 uart_tx #(
     .CLK_FREQ(50000000),
@@ -33,24 +35,25 @@ uart_tx #(
     .tx_busy(uart_tx_busy)
 );
 
- wire write_en, read_en, ready;
-
-
-assign write_en = PSEL_S1 & PENABLE_S & write;
-assign read_en  = PSEL_S1 & PENABLE_S & read;
-assign ready = ~uart_tx_busy && PENABLE_S;
-always @(posedge PCLK or negedge PRESETn ) begin
-    PREADY_S <= ready;
-
+always @(posedge PCLK) begin
     if (!PRESETn) begin
-        PRDATA_S <= {DATA_WIDTH{1'b0}};
-    end else if(read_en && ready) begin
-            PRDATA_S <= memory_array[PADDR_S[1:0]];
-        end
-    else if(write_en && ready) begin
-            memory_array[PADDR_S[1:0]] <= PWDATA_S;
+        PRDATA <= {DATA_WIDTH{1'b0}};
+        PREADY <= 1'b0;
+    end else begin
+        if (PSEL && PENABLE) begin
+            if (PWRITE) begin
+                // Write operation
+                memory_array[PADDR[1:0]] <= PWDATA;
+                PREADY <= 1'b1;
+                PSLVERR <= (PADDR[1:0] < 2'b10) ? 1'b0 : 1'b1; // Example error condition
+            end else begin
+                // Read operation
+                PRDATA <= memory_array[PADDR[1:0]];
+                PREADY <= 1'b1;
             end
-
+        end else begin
+            PREADY <= 1'b0;
+        end
+    end
 end
-
 endmodule
