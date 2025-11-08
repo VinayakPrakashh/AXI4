@@ -58,18 +58,11 @@ always @(*) begin
     endcase
 end
 
-always @(posedge PCLK) begin
- if (!PRESETn) begin
-        PSEL    <= 1'b0;
-        PENABLE <= 1'b0;
-        PWRITE  <= 1'b0;
-        PADDR   <= {ADDR_WIDTH{1'b0}};
-        PWDATA  <= {DATA_WIDTH{1'b0}};
-        apb_rdata <= {DATA_WIDTH{1'b0}};
-    end else begin
+always @(state) begin
  case (state)
     IDLE: begin
         PSEL <= 1'b0;
+        PENABLE <= 1'b0;
     end 
     SETUP: begin
         PSEL <= 1'b1;
@@ -95,7 +88,7 @@ always @(posedge PCLK) begin
     end
  endcase
     end
-end
+
 
 assign error = PSLVERR & PSEL & PENABLE; //just for future use
 endmodule
