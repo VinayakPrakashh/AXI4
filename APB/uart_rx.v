@@ -5,7 +5,6 @@ module uart_rx #(
     input clk,
     input resetn,
     input rx_enable,
-    input rx_start,
     input rx,
     output reg [7:0] rx_data,
     output reg rx_done,
@@ -47,7 +46,7 @@ always @(posedge clk or negedge resetn) begin
         framing_error <= 1'b0;
         counter <= 16'd0;
         bit_index <= 4'd0;
-        if(rx_enable && rx_start) begin
+        if(rx_enable && !rx) begin
             state <= START_BIT;
             rx_busy <= 1'b1;
         end

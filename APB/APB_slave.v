@@ -12,48 +12,122 @@ module APB_slave1 #(
     input [DATA_WIDTH-1:0] PWDATA,
     output reg [DATA_WIDTH-1:0] PRDATA,
     output reg PREADY,
-    output reg PSLVERR
+    output reg PSLVERR,
+    // UART Interface
+    input RX,
+    output TX
 );
 
-// Simple memory array for APB slave
-reg [DATA_WIDTH-1:0] memory_array [0:3];
-initial begin
-    memory_array[0] = 32'h00000001;
-    memory_array[1] = 32'h00000010;
-    memory_array[2] = 32'h00000100;
-    memory_array[3] = 32'h00001000;
-end
-uart_tx #(
-    .CLK_FREQ(50000000),
-    .BAUD_RATE(9600)
-) uart_inst (
-    .clk(PCLK),
-    .resetn(PRESETn),
-    .tx_start(uart_tx_start),
-    .tx_data(memory_array[0][7:0]),
-    .tx(uart_tx),
-    .tx_busy(uart_tx_busy)
-);
+    // Internal signals
+    wire tx_busy, tx_done;
+    wire rx_busy, rx_done;
+    wire rx_error;
+    wire parity_error;
+    wire framing_error;
 
-always @(posedge PCLK) begin
-    if (!PRESETn) begin
-        PRDATA <= {DATA_WIDTH{1'b0}};
-        PREADY <= 1'b0;
-    end else begin
-        if (PSEL && PENABLE) begin
-            if (PWRITE) begin
-                // Write operation
-                memory_array[PADDR[1:0]] <= PWDATA;
-                PREADY <= 1'b1;
-                PSLVERR <= (PADDR[1:0] < 2'b10) ? 1'b0 : 1'b1; // Example error condition
-            end else begin
-                // Read operation
-                PRDATA <= memory_array[PADDR[1:0]];
-                PREADY <= 1'b1;
+    // Memory-mapped registers
+    reg [7:0] tx_data_reg;      // mem[0]
+    reg [7:0] rx_data_reg;      // mem[1]
+    reg [7:0] status_reg;       // mem[2]
+    reg [7:0] control_reg;      // mem[3]
+// memory organization
+//mem[0] - TX Data Register [7:0]
+//mem[1] - RX Data Register [7:0]
+//mem[2] - Status Register [0]=TX Busy, [1]=TX Done, [2]=RX Busy, [3]=RX Done [4]= Parity Error, [5]= Framing Error [6]= RX Error
+//mem[3] - Control Register [0]= TX Enable, [1]= RX Enable [2]= TX Start
+    uart_tx #(
+        .CLK_FREQ(50000000),
+        .BAUD_RATE(9600)
+    ) uart_tx_inst (
+        .clk(PCLK),
+        .resetn(PRESETn),
+        .tx_enable(control_reg[0]),
+        .tx_data(tx_data_reg),
+        .tx_start(control_reg[2]),
+        .tx(TX),
+        .tx_busy(tx_busy),
+        .tx_done(tx_done)
+    );
+
+    uart_rx #(
+        .CLK_FREQ(50000000),
+        .BAUD_RATE(9600)
+    ) uart_rx_inst (
+        .clk(PCLK),
+        .resetn(PRESETn),
+        .rx_enable(control_reg[1]),
+        .rx(RX),
+        .rx_data(rx_data),
+        .rx_done(rx_done),
+        .rx_error(rx_error),
+        .rx_busy(rx_busy),
+        .parity_error(parity_error),
+        .framing_error(framing_error)
+    );
+
+always @(posedge PCLK or negedge PRESETn) begin
+        if (!PRESETn) begin
+            tx_data_reg <= 8'd0;
+            rx_data_reg <= 8'd0;
+            status_reg  <= 8'd0;
+            control_reg <= 8'd0;
+            PRDATA      <= 32'd0;
+        end 
+        else begin
+
+            //-----------------------------------------
+            // 1. Live Status Flags
+            //-----------------------------------------
+            status_reg[0] <= tx_busy;   // TX Busy
+            status_reg[2] <= rx_busy;   // RX Busy
+
+            //-----------------------------------------
+            // 2. Sticky Status Flags (set by hardware)
+            //-----------------------------------------
+            if (tx_done)        status_reg[1] <= 1'b1; // TX Done
+            if (rx_done) begin
+                status_reg[3] <= 1'b1; // RX Done
+                rx_data_reg   <= rx_data;
             end
-        end else begin
-            PREADY <= 1'b0;
+            if (parity_error)   status_reg[4] <= 1'b1; // Parity error
+            if (framing_error)  status_reg[5] <= 1'b1; // Framing error
+            if (rx_error)       status_reg[6] <= 1'b1; // RX error
+
+            //-----------------------------------------
+            // 3. APB Write Operations
+            //-----------------------------------------
+            if (PSEL && PENABLE && PWRITE) begin
+                case (PADDR[3:2])
+                    2'd0: tx_data_reg <= PWDATA[7:0]; // TXDATA (0x00)
+                    2'd1: status_reg  <= status_reg & ~PWDATA[7:0]; // STATUS W1C (0x04)
+                    2'd2: control_reg <= PWDATA[7:0]; // CONTROL (0x08)
+                    default: ;
+                endcase
+            end
+
+            //-----------------------------------------
+            // 4. APB Read Operations
+            //-----------------------------------------
+            if (PSEL && PENABLE && !PWRITE) begin
+                case (PADDR[3:2])
+                    2'd0: PRDATA <= {24'd0, tx_data_reg}; // TXDATA (0x00)
+                    2'd1: PRDATA <= {24'd0, status_reg};  // STATUS (0x04)
+                    2'd2: PRDATA <= {24'd0, control_reg}; // CONTROL (0x08)
+                    default: PRDATA <= 32'd0;
+                endcase
+            end
         end
+    end
+always @(*) begin
+    PREADY <= 1'b1;
+
+    if (PSEL && PENABLE && PREADY) begin
+        case (PADDR[3:2])
+            2'd0, 2'd1, 2'd2: PSLVERR = 1'b0;  // Valid registers
+            default:           PSLVERR = 1'b1;  // Invalid address
+        endcase
+    end else begin
+        PSLVERR = 1'b0;  // Default: no error
     end
 end
 endmodule
