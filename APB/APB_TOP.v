@@ -1,7 +1,7 @@
 module APB_TOP #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
-    parameter MUX_ADDR_WIDTH = 10,
+    parameter MUX_ADDR_WIDTH = 32,
     parameter OP_ADDR_WIDTH = 2
 ) (
     input PCLK,
@@ -21,7 +21,7 @@ module APB_TOP #(
 );
 
     // Internal APB Master to MUX signals
-    wire psel_master;
+    wire psel_uart, psel_timer;
     wire penable_master;
     wire pwrite_master;
     wire [ADDR_WIDTH-1:0] paddr_master;
@@ -69,7 +69,8 @@ module APB_TOP #(
         .OP_ADDR_WIDTH(OP_ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH)
     ) apb_mux_inst (
-        .PSEL(psel_master),
+        .PSEL_UART(psel_uart),
+        .PSEL_TIMER(psel_timer),
         .PADDR(paddr_master[MUX_ADDR_WIDTH-1:0]), // Use lower bits for MUX addressing
         .PREADY_0(pready_slave0),
         .PREADY_1(pready_slave1),

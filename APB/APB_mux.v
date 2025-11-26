@@ -3,7 +3,8 @@ module APB_MUX #(
     parameter OP_ADDR_WIDTH = 2,
     parameter DATA_WIDTH = 32
 ) (
-    input PSEL,
+    input PSEL_UART,
+    input PSEL_TIMER,
     input [ADDR_WIDTH-1:0]PADDR,
     input PREADY_0,
     input PREADY_1,
@@ -21,14 +22,14 @@ module APB_MUX #(
 wire slave_select;
 
 always @(*) begin
-    if (PSEL) begin
-        if (slave_select == 1'b0) begin
+    if (PSEL_UART | PSEL_TIMER) begin
+        if (PSEL_UART) begin
             PSEL_0 = 1'b1;
             PSEL_1 = 1'b0;
             PRDATA = PRDATA_0;
             PSLVERR = PSLVERR_0;
             PREADY = PREADY_0;
-        end else begin
+        end else if(PSEL_TIMER)begin
             PSEL_0 = 1'b0;
             PSEL_1 = 1'b1;
             PRDATA = PRDATA_1;

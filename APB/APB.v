@@ -5,7 +5,8 @@ module APB_MASTER #(
     input PCLK,
     input PRESETn,
     // APB Master Interface
-    output reg PSEL,
+    output reg PSEL_UART,
+    output reg PSEL_TIMER,
     output reg PENABLE,
     output reg PWRITE,
     output reg [ADDR_WIDTH-1:0] PADDR,
@@ -61,11 +62,13 @@ end
 always @(state) begin
  case (state)
     IDLE: begin
-        PSEL <= 1'b0;
+        PSEL_UART <= 1'b0;
+        PSEL_TIMER <= 1'b0;
         PENABLE <= 1'b0;
     end 
     SETUP: begin
-        PSEL <= 1'b1;
+        PSEL_UART <= (PADDR[ADDR_WIDTH:ADDR_WIDTH-3] == 4'b0000) ? 1'b1 : 1'b0;
+        PSEL_TIMER <= (PADDR[ADDR_WIDTH:ADDR_WIDTH-3] > 4'b0000) ? 1'b1 : 1'b0;
         PENABLE <= 1'b0;
         if(write) begin
             PWRITE <= 1'b1;
@@ -83,12 +86,13 @@ always @(state) begin
         end
     end
     default: begin
-        PSEL <= 1'b0;
+        PSEL_UART <= 1'b0;
+        PSEL_TIMER <= 1'b0;
         PENABLE <= 1'b0;
     end
  endcase
     end
 
 
-assign error = PSLVERR & PSEL & PENABLE; //just for future use
+assign error = PSLVERR & (PSEL_UART | PSEL_TIMER) & PENABLE; //just for future use
 endmodule

@@ -1,5 +1,5 @@
 module APB_slave1 #(
-    parameter ADDR_WIDTH = 10,
+    parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32
 ) (
     input PCLK,
@@ -24,7 +24,7 @@ module APB_slave1 #(
     wire rx_error;
     wire parity_error;
     wire framing_error;
-
+    wire [7:0] rx_data;
     // Memory-mapped registers
     reg [7:0] tx_data_reg;      // mem[0]
     reg [7:0] rx_data_reg;      // mem[1]
@@ -84,7 +84,8 @@ always @(posedge PCLK or negedge PRESETn) begin
             //-----------------------------------------
             // 2. Sticky Status Flags (set by hardware)
             //-----------------------------------------
-            if (tx_done)        status_reg[1] <= 1'b1; // TX Done
+            if (tx_done) status_reg[1] <= 1'b1; // TX Done
+            
             if (rx_done) begin
                 status_reg[3] <= 1'b1; // RX Done
                 rx_data_reg   <= rx_data;
@@ -111,8 +112,10 @@ always @(posedge PCLK or negedge PRESETn) begin
             if (PSEL && PENABLE && !PWRITE) begin
                 case (PADDR[3:2])
                     2'd0: PRDATA <= {24'd0, tx_data_reg}; // TXDATA (0x00)
-                    2'd1: PRDATA <= {24'd0, status_reg};  // STATUS (0x04)
-                    2'd2: PRDATA <= {24'd0, control_reg}; // CONTROL (0x08)
+                    2'd1: PRDATA <= {24'd0, rx_data_reg}; // RXDATA (0x04)
+                    2'd2: PRDATA <= {24'd0, status_reg};  // STATUS (0x08)
+                    2'd3: PRDATA <= {24'd0, control_reg}; // CONTROL (0x0C)
+                    
                     default: PRDATA <= 32'd0;
                 endcase
             end
@@ -122,10 +125,12 @@ always @(*) begin
     PREADY <= 1'b1;
 
     if (PSEL && PENABLE && PREADY) begin
-        case (PADDR[3:2])
-            2'd0, 2'd1, 2'd2: PSLVERR = 1'b0;  // Valid registers
-            default:           PSLVERR = 1'b1;  // Invalid address
-        endcase
+        if (PADDR > 32'h1000_0003) begin
+            PSLVERR = 1'b1;  // Invalid address
+        end
+        else begin
+            PSLVERR = 1'b0;  // No error
+        end
     end else begin
         PSLVERR = 1'b0;  // Default: no error
     end
