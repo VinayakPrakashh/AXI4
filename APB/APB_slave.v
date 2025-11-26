@@ -85,6 +85,9 @@ always @(posedge PCLK or negedge PRESETn) begin
             // 2. Sticky Status Flags (set by hardware)
             //-----------------------------------------
             if (tx_done) status_reg[1] <= 1'b1; // TX Done
+            if (tx_busy) begin
+            control_reg[2] <= 1'b0;  // Clear TX Start when transmission starts
+        end
             
             if (rx_done) begin
                 status_reg[3] <= 1'b1; // RX Done
@@ -113,8 +116,9 @@ always @(posedge PCLK or negedge PRESETn) begin
                 case (PADDR[3:2])
                     2'd0: PRDATA <= {24'd0, tx_data_reg}; // TXDATA (0x00)
                     2'd1: PRDATA <= {24'd0, rx_data_reg}; // RXDATA (0x04)
-                    2'd2: PRDATA <= {24'd0, status_reg};  // STATUS (0x08)
-                    2'd3: PRDATA <= {24'd0, control_reg}; // CONTROL (0x0C)
+                    2'd2: PRDATA <= {24'd0, control_reg}; // CONTROL (0x08)
+                    2'd3: PRDATA <= {24'd0, status_reg};  // STATUS (0x0C)
+
                     
                     default: PRDATA <= 32'd0;
                 endcase

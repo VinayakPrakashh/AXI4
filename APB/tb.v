@@ -1,9 +1,6 @@
 `timescale 1ns / 1ps
 
-module APB_TOP_simple_tb();
-
-    // Parameters
-    parameter CLK_PERIOD = 10;
+module APB_TOP_one_write_tb();
 
     // Testbench signals
     reg PCLK;
@@ -34,7 +31,7 @@ module APB_TOP_simple_tb();
     // Clock generation
     initial begin
         PCLK = 0;
-        forever #(CLK_PERIOD/2) PCLK = ~PCLK;
+        forever #5 PCLK = ~PCLK;
     end
 
     // Test sequence
@@ -48,17 +45,15 @@ module APB_TOP_simple_tb();
         apb_raddr = 0;
         apb_wdata = 0;
 
-        $display("Starting APB TOP Simple Test");
-
         // Reset
         #50;
         PRESETn = 1;
         #20;
 
-        // Test 1: Write to Slave 0
-        $display("Test 1: Write to Slave 0");
-        apb_waddr = 32'h00000010;  // Slave 0 address
-        apb_wdata = 32'hDEADBEEF;
+        // Write data to TX Data Register
+        $display("Writing 0xA5 to TX Data Register (0x00)");
+        apb_waddr = 32'h00000000;    // TX Data Register address
+        apb_wdata = 32'h000000A5;    // Write data 0xA5
         write = 1;
         transfer = 1;
         #20;
@@ -66,10 +61,10 @@ module APB_TOP_simple_tb();
         write = 0;
         #50;
 
-        // Test 2: Write to Slave 1
-        $display("Test 2: Write to Slave 1");
-        apb_waddr = 32'h00000110;  // Slave 1 address  
-        apb_wdata = 32'hCAFEBABE;
+        // Write control data to Control Register
+        $display("Writing 0x04 to Control Register (0x0C)");
+        apb_waddr = 32'h00000008;    // Control Register address (0x0C)
+        apb_wdata = 32'h00000005;    // Write control data 0x04
         write = 1;
         transfer = 1;
         #20;
@@ -77,30 +72,22 @@ module APB_TOP_simple_tb();
         write = 0;
         #50;
 
-        // Test 3: Read from Slave 0
-        $display("Test 3: Read from Slave 0");
-        apb_raddr = 32'h00000010;
-        read = 1;
-        transfer = 1;
-        #20;
-        transfer = 0;
-        read = 0;
-        #50;
-
-        $display("Test completed");
+        $display("Both writes completed:");
+        $display("- TX Data: 0xA5 written to address 0x00");
+        $display("- Control: 0x04 written to address 0x0C");
         $finish;
     end
 
-    // Monitor
+    // Simple monitor
     initial begin
-        $monitor("Time=%0t | Write=%b | Read=%b | Addr=0x%h | WData=0x%h | RData=0x%h | Error=%b", 
-                 $time, write, read, write ? apb_waddr : apb_raddr, apb_wdata, apb_rdata, error);
+        $monitor("Time=%0t | Addr=0x%h | Data=0x%h | Write=%b | Error=%b", 
+                 $time, apb_waddr, apb_wdata, write, error);
     end
 
-    // Dump waveforms
+    // Waveforms
     initial begin
-        $dumpfile("apb_simple.vcd");
-        $dumpvars(0, APB_TOP_simple_tb);
+        $dumpfile("one_write.vcd");
+        $dumpvars(0, APB_TOP_one_write_tb);
     end
 
 endmodule

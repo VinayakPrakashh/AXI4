@@ -67,8 +67,8 @@ always @(state) begin
         PENABLE <= 1'b0;
     end 
     SETUP: begin
-        PSEL_UART <= (PADDR[ADDR_WIDTH-1:ADDR_WIDTH-3] == 4'b0000) ? 1'b1 : 1'b0;
-        PSEL_TIMER <= (PADDR[ADDR_WIDTH-1:ADDR_WIDTH-3] > 4'b0000) ? 1'b1 : 1'b0;
+        PSEL_UART <= (apb_waddr[ADDR_WIDTH-1:ADDR_WIDTH-4] == 0) ? 1'b1 : 1'b0;
+        PSEL_TIMER <= (apb_waddr[ADDR_WIDTH-1:ADDR_WIDTH-4] > 0) ? 1'b1 : 1'b0;
         PENABLE <= 1'b0;
         if(write) begin
             PWRITE <= 1'b1;
