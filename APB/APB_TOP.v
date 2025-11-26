@@ -44,7 +44,8 @@ module APB_TOP #(
         .PCLK(PCLK),
         .PRESETn(PRESETn),
         // APB Master Interface (to MUX)
-        .PSEL(psel_master),
+        .PSEL_UART(psel_uart),
+        .PSEL_TIMER(psel_timer),
         .PENABLE(penable_master),
         .PWRITE(pwrite_master),
         .PADDR(paddr_master),

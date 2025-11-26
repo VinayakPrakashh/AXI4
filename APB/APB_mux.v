@@ -45,6 +45,5 @@ always @(*) begin
     end
 end
 
-assign slave_select = (PADDR[1:0] < 2'b10)? 1'b0 : 1'b1;
     
 endmodule
