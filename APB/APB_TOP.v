@@ -11,6 +11,7 @@ module APB_TOP #(
     input transfer,
     input read,
     input write,
+    input [3:0] WSTRB,
     input [ADDR_WIDTH-1:0] apb_waddr,
     input [ADDR_WIDTH-1:0] apb_raddr,
     input [DATA_WIDTH-1:0] apb_wdata,
@@ -29,6 +30,8 @@ module APB_TOP #(
     wire [DATA_WIDTH-1:0] prdata_to_master;
     wire pready_to_master;
     wire pslverr_to_master;
+    wire [3:0] PSTRB_slave;
+
     
     // MUX to Slaves signals
     wire psel_slave0, psel_slave1;
@@ -50,6 +53,7 @@ module APB_TOP #(
         .PWRITE(pwrite_master),
         .PADDR(paddr_master),
         .PWDATA(pwdata_master),
+        .PSTRB(PSTRB_slave), // Not connected here
         .PRDATA(prdata_to_master),
         .PREADY(pready_to_master),
         .PSLVERR(pslverr_to_master),
@@ -57,6 +61,7 @@ module APB_TOP #(
         .transfer(transfer),
         .read(read),
         .write(write),
+        .WSTRB(WSTRB), // Assuming full byte write for simplicity
         // AXI4 simulation inputs
         .apb_waddr(apb_waddr),
         .apb_raddr(apb_raddr),
@@ -96,6 +101,7 @@ module APB_TOP #(
         .PSEL(psel_slave0),
         .PENABLE(penable_master),
         .PWRITE(pwrite_master),
+        .PSTRB(PSTRB_slave),
         .PADDR(paddr_master[MUX_ADDR_WIDTH-1:0]),
         .PWDATA(pwdata_master),
         .PRDATA(prdata_slave0),
@@ -113,6 +119,7 @@ module APB_TOP #(
         .PSEL(psel_slave1),
         .PENABLE(penable_master),
         .PWRITE(pwrite_master),
+        .PSTRB(PSTRB_slave),
         .PADDR(paddr_master[MUX_ADDR_WIDTH-1:0]),
         .PWDATA(pwdata_master),
         .PRDATA(prdata_slave1),

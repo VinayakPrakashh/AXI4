@@ -11,6 +11,7 @@ module APB_MASTER #(
     output reg PWRITE,
     output reg [ADDR_WIDTH-1:0] PADDR,
     output reg [DATA_WIDTH-1:0] PWDATA,
+    output reg [3:0] PSTRB,
     input [DATA_WIDTH-1:0] PRDATA,
     input PREADY,
     input PSLVERR,
@@ -18,6 +19,7 @@ module APB_MASTER #(
     input transfer,
     input read,
     input write,
+    input [3:0] WSTRB,
     // axi4 inputs for simulation purposes
     input [ADDR_WIDTH-1:0] apb_waddr,
     input [ADDR_WIDTH-1:0] apb_raddr,
@@ -65,11 +67,13 @@ always @(state) begin
         PSEL_UART <= 1'b0;
         PSEL_TIMER <= 1'b0;
         PENABLE <= 1'b0;
+        PSTRB <= 4'b0000;
     end 
     SETUP: begin
         PSEL_UART <= (apb_waddr[ADDR_WIDTH-1:ADDR_WIDTH-4] == 0) ? 1'b1 : 1'b0;
         PSEL_TIMER <= (apb_waddr[ADDR_WIDTH-1:ADDR_WIDTH-4] > 0) ? 1'b1 : 1'b0;
         PENABLE <= 1'b0;
+        PSTRB <= WSTRB;
         if(write) begin
             PWRITE <= 1'b1;
             PADDR <= apb_waddr;
@@ -89,6 +93,7 @@ always @(state) begin
         PSEL_UART <= 1'b0;
         PSEL_TIMER <= 1'b0;
         PENABLE <= 1'b0;
+        PSTRB <= 4'b0000;
     end
  endcase
     end

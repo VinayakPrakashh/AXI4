@@ -8,6 +8,7 @@ module APB_slave1 #(
     input PSEL,
     input PENABLE,
     input PWRITE,
+    input [3:0] PSTRB,
     input [ADDR_WIDTH-1:0] PADDR,
     input [DATA_WIDTH-1:0] PWDATA,
     output reg [DATA_WIDTH-1:0] PRDATA,
@@ -25,6 +26,7 @@ module APB_slave1 #(
     wire parity_error;
     wire framing_error;
     wire [7:0] rx_data;
+    wire [7:0] DATA_VALID;  
     // Memory-mapped registers
     reg [7:0] tx_data_reg;      // mem[0]
     reg [7:0] rx_data_reg;      // mem[1]
@@ -102,9 +104,9 @@ always @(posedge PCLK or negedge PRESETn) begin
             //-----------------------------------------
             if (PSEL && PENABLE && PWRITE) begin
                 case (PADDR[3:2])
-                    2'd0: tx_data_reg <= PWDATA[7:0]; // TXDATA (0x00)
-                    2'd1: status_reg  <= status_reg & ~PWDATA[7:0]; // STATUS W1C (0x04)
-                    2'd2: control_reg <= PWDATA[7:0]; // CONTROL (0x08)
+                    2'd0: tx_data_reg <= DATA_VALID; // TXDATA (0x00)
+                    2'd1: status_reg  <= status_reg & ~DATA_VALID; // STATUS W1C (0x04)
+                    2'd2: control_reg <= DATA_VALID; // CONTROL (0x08)
                     default: ;
                 endcase
             end
@@ -129,7 +131,7 @@ always @(*) begin
     PREADY <= 1'b1;
 
     if (PSEL && PENABLE && PREADY) begin
-        if (PADDR > 32'h1000_0003) begin
+        if (PADDR > 32'h0000_0003) begin
             PSLVERR = 1'b1;  // Invalid address
         end
         else begin
@@ -139,4 +141,11 @@ always @(*) begin
         PSLVERR = 1'b0;  // Default: no error
     end
 end
+
+assign DATA_VALID = (PSTRB[0]) ? PWDATA[7:0]   :
+                    (PSTRB[1]) ? PWDATA[15:8]  :
+                    (PSTRB[2]) ? PWDATA[23:16] :
+                    (PSTRB[3]) ? PWDATA[31:24] :
+                    8'h00;  // default if no valid byte lane
+
 endmodule
