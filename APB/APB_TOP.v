@@ -6,18 +6,6 @@ module APB_TOP #(
 ) (
     input PCLK,
     input PRESETn,
-
-    // AXI4 to APB Bridge Interface (simulation inputs)
-    input transfer,
-    input read,
-    input write,
-    input [3:0] WSTRB,
-    input [ADDR_WIDTH-1:0] apb_waddr,
-    input [ADDR_WIDTH-1:0] apb_raddr,
-    input [DATA_WIDTH-1:0] apb_wdata,
-    output [DATA_WIDTH-1:0] apb_rdata,
-    
-
     //--------AXI SIGNALS --------
     input ACLK,
     input ARESETn,
@@ -41,8 +29,6 @@ module APB_TOP #(
     output [1:0] BRESP,
     output BVALID,
     input BREADY,
-
-
     // Error signal
     output error
 );

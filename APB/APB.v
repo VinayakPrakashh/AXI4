@@ -24,7 +24,8 @@ module APB_MASTER #(
     input [ADDR_WIDTH-1:0] apb_waddr,
     input [ADDR_WIDTH-1:0] apb_raddr,
     input [DATA_WIDTH-1:0] apb_wdata,
-    output reg [DATA_WIDTH-1:0] apb_rdata
+    output reg [DATA_WIDTH-1:0] apb_rdata,
+    output apb_done
 );
 
 wire error;
@@ -97,7 +98,7 @@ always @(state) begin
     end
  endcase
     end
-
+assign apb_done = (PSEL && PENABLE && PREADY);
 
 assign error = PSLVERR & (PSEL_UART | PSEL_TIMER) & PENABLE; //just for future use
 endmodule
