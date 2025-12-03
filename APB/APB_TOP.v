@@ -50,6 +50,54 @@ module APB_TOP #(
     wire [DATA_WIDTH-1:0] prdata_slave0, prdata_slave1;
     wire pready_slave0, pready_slave1;
     wire pslverr_slave0, pslverr_slave1;
+    wire [ADDR_WIDTH-1:0] apb_waddr;
+    wire [ADDR_WIDTH-1:0] apb_raddr;
+    wire [DATA_WIDTH-1:0] apb_wdata;
+    wire [DATA_WIDTH-1:0] apb_rdata;
+    wire transfer, read, write;
+    // DUT instantiation
+    //axi4-lite
+    AXI4_lite #(
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .DATA_WIDTH(DATA_WIDTH)
+    ) axi4_lite_inst (
+        .ACLK(ACLK),
+        .ARESETn(ARESETn),
+        //AXI READ
+        .ARADDR(ARADDR),
+        .ARVALID(ARVALID),
+        .ARREADY(ARREADY),
+        .RDATA(RDATA),
+        .RVALID(RVALID),
+        .RREADY(RREADY),
+        .RRESP(RRESP),
+        //AXI WRITE
+        .AWADDR(AWADDR),
+        .AWVALID(AWVALID),
+        .AWREADY(AWREADY),
+        .WDATA(WDATA),
+        .WVALID(WVALID),
+        .WREADY(WREADY),
+        .WSTRB(WSTRB),
+        // WRITE RESPONSE
+        .BRESP(BRESP),
+        .BVALID(BVALID),
+        .BREADY(BREADY),
+        // Error signal
+        .error(error),
+        //for APB TOP module
+        .transfer(transfer),
+        .read(read),
+        .write(write),
+
+        .PSTRB(PSTRB_slave[1:0]), // Assuming full byte write for simplicity
+        .apb_waddr(apb_waddr),
+        .apb_raddr(apb_raddr),
+        .apb_wdata(apb_wdata),
+        .apb_rdata(prdata_to_master),
+        .err_flag(pslverr_to_master),
+        .apb_done(pready_to_master)
+    );
     
     // APB Master Instance
     APB_MASTER #(

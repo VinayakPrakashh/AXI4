@@ -5,8 +5,8 @@ module APB_MASTER #(
     input PCLK,
     input PRESETn,
     // APB Master Interface
-    output reg PSEL_UART,
-    output reg PSEL_TIMER,
+    output PSEL_UART,
+    output PSEL_TIMER,
     output reg PENABLE,
     output reg PWRITE,
     output reg [ADDR_WIDTH-1:0] PADDR,
@@ -29,6 +29,7 @@ module APB_MASTER #(
 );
 
 wire error;
+wire UART, TIMER;
 reg [1:0] state, next_state;
 
 parameter IDLE = 2'b00,
@@ -65,15 +66,11 @@ end
 always @(state) begin
  case (state)
     IDLE: begin
-        PSEL_UART <= 1'b0;
-        PSEL_TIMER <= 1'b0;
         PENABLE <= 1'b0;
         PSTRB <= 4'b0000;
     end 
     SETUP: begin
-        PSEL_UART <= (apb_waddr[ADDR_WIDTH-1:ADDR_WIDTH-4] == 0) ? 1'b1 : 1'b0;
-        PSEL_TIMER <= (apb_waddr[ADDR_WIDTH-1:ADDR_WIDTH-4] > 0) ? 1'b1 : 1'b0;
-        PENABLE <= 1'b0;
+
         PSTRB <= WSTRB;
         if(write) begin
             PWRITE <= 1'b1;
@@ -91,14 +88,15 @@ always @(state) begin
         end
     end
     default: begin
-        PSEL_UART <= 1'b0;
-        PSEL_TIMER <= 1'b0;
+
         PENABLE <= 1'b0;
         PSTRB <= 4'b0000;
     end
  endcase
     end
-assign apb_done = (PSEL && PENABLE && PREADY);
 
+assign apb_done = ((PSEL_UART | PSEL_TIMER) && PENABLE && PREADY);
+assign PSEL_UART  =(apb_waddr[ADDR_WIDTH-1:ADDR_WIDTH-4] == 0) ? 1'b1 : 1'b0;
+assign PSEL_TIMER =(apb_waddr[ADDR_WIDTH-1:ADDR_WIDTH-4] > 0) ? 1'b1 : 1'b0;
 assign error = PSLVERR & (PSEL_UART | PSEL_TIMER) & PENABLE; //just for future use
 endmodule
