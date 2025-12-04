@@ -115,6 +115,9 @@ always @(*) begin
         else
             next_state = S_R_RESP;
     end
+    default: begin
+        next_state = S_IDLE;
+    end
     endcase
 end
 
@@ -186,7 +189,16 @@ always @(posedge ACLK) begin
                 RVALID <= 1'b0;
             end
         end
-    
+    default: begin
+        AWREADY <= 1'b0;
+        WREADY  <= 1'b0;
+        BVALID  <= 1'b0;
+        ARREADY <= 1'b0;
+        RVALID  <= 1'b0;
+        transfer <= 1'b0;
+        read     <= 1'b0;
+        write    <= 1'b0;
+    end
 endcase
 end
 assign apb_waddr = latched_awaddr;
