@@ -180,8 +180,7 @@ always @(posedge ACLK) begin
             end
         end
     S_R_INT: begin
-                    RVALID <= 1'b1;
-        end
+                    RVALID <= 1'b1;  end
     S_R_RESP: begin
 
             RDATA  <= apb_rdata;
