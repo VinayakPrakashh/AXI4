@@ -54,7 +54,7 @@ module APB_TOP #(
     wire [ADDR_WIDTH-1:0] apb_raddr;
     wire [DATA_WIDTH-1:0] apb_wdata;
     wire [DATA_WIDTH-1:0] apb_rdata;
-    wire transfer, read, write;
+    wire transfer, read, write, apb_done;
     // DUT instantiation
     //axi4-lite
     AXI4_lite #(
@@ -96,7 +96,7 @@ module APB_TOP #(
         .apb_wdata(apb_wdata),
         .apb_rdata(prdata_to_master),
         .err_flag(pslverr_to_master),
-        .apb_done(pready_to_master)
+        .apb_done(apb_done)
     );
     
     // APB Master Instance
@@ -126,7 +126,8 @@ module APB_TOP #(
         .apb_waddr(apb_waddr),
         .apb_raddr(apb_raddr),
         .apb_wdata(apb_wdata),
-        .apb_rdata(apb_rdata)
+        .apb_rdata(apb_rdata),
+        .apb_done(apb_done)
     );
     
     // APB MUX Instance

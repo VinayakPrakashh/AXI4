@@ -44,7 +44,6 @@ module uart_top #(
         .clk(clk),
         .resetn(resetn),
         .rx_enable(uart_enable),
-        .rx_start(uart_start),
         .rx(uart_tx), // loopback
         .rx_data(uart_data_out),
         .rx_done(rx_done),

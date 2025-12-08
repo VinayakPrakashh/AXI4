@@ -128,7 +128,6 @@ always @(posedge ACLK) begin
         AWREADY <= 1'b0;
         WREADY  <= 1'b0;
         BVALID  <= 1'b0;
-
         //READ CHANNEL
         ARREADY <= 1'b0;
         RVALID  <= 1'b0;
@@ -153,6 +152,7 @@ always @(posedge ACLK) begin
     S_W_REQ: begin
         AWREADY    <= 1'b0;
         WREADY     <= 1'b0;
+
         transfer    <= 1'b0;
         write       <= 1'b0;
 
@@ -164,6 +164,7 @@ always @(posedge ACLK) begin
 
     end
     S_W_WAIT: begin
+        BVALID <= 1'b1;
         write <= 1'b0;
 
     end
@@ -171,7 +172,7 @@ always @(posedge ACLK) begin
         read <= 1'b0;
     end
     S_W_RESP: begin
-            BVALID <= 1'b1;
+
             BRESP  <= err_flag ? 2'b10 : 2'b00; // 10=SLVERR, 00=OKAY
 
             if(BREADY) begin
@@ -179,9 +180,10 @@ always @(posedge ACLK) begin
             end
         end
     S_R_INT: begin
+                    RVALID <= 1'b1;
         end
     S_R_RESP: begin
-            RVALID <= 1'b1;
+
             RDATA  <= apb_rdata;
             RRESP  <= err_flag ? 2'b10 : 2'b00; // 10=SLVERR, 00=OKAY
 

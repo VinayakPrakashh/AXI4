@@ -16,13 +16,36 @@ module axi4_top #(
     input [ADDR_WIDTH-1:0]      addr,
     input [DATA_WIDTH-1:0]      wdata,
     input [3:0]                 wstrb,      // generally 4'b1111
-    output reg                  busy,       // 1 while ongoing
-    output reg                  done,       // pulse when finished
-    output reg [DATA_WIDTH-1:0] rdata,      // valid when done & read
-    output reg [1:0]            resp        // BRESP/RRESP
+    output                   busy,       // 1 while ongoing
+    output                   done,       // pulse when finished
+    output  [DATA_WIDTH-1:0] rdata,      // valid when done & read
+    output  [1:0]            resp        // BRESP/RRESP
     
 
 );
+
+wire [ADDR_WIDTH-1:0] AWADDR;
+    wire                  AWVALID;
+    wire [DATA_WIDTH-1:0] WDATA;
+    wire                  WVALID;
+    wire [3:0]            WSTRB;
+    wire [1:0]            BRESP;
+    wire                  BVALID;
+
+    wire [ADDR_WIDTH-1:0] ARADDR;
+    wire                  ARVALID;
+    wire [DATA_WIDTH-1:0] RDATA;
+    wire                  RVALID;
+    wire [1:0]            RRESP;
+
+    wire                  AWREADY;
+    wire                  WREADY;
+    wire                  BREADY;
+    wire                  ARREADY;
+    wire                  RREADY;
+
+    wire                  error;
+
     
 axi4lite_master #(
         .ADDR_WIDTH(ADDR_WIDTH),
@@ -96,80 +119,3 @@ axi4lite_master #(
   
 
 endmodule
-module axi4lite_master #(
-    parameter ADDR_WIDTH = 32,
-    parameter DATA_WIDTH = 32
-)(
-    input                       ACLK,
-    input                       ARESETn,
-
-    // Control interface
-    input                       start,      // pulse to start transaction
-    input                       write,      // 1 = write, 0 = read
-    input [ADDR_WIDTH-1:0]      addr,
-    input [DATA_WIDTH-1:0]      wdata,
-    input [3:0]                 wstrb,      // generally 4'b1111
-
-    output reg                  busy,       // 1 while ongoing
-    output reg                  done,       // pulse when finished
-    output reg [DATA_WIDTH-1:0] rdata,      // valid when done & read
-    output reg [1:0]            resp,       // BRESP/RRESP
-
-    // AXI4-Lite Interface
-    output reg [ADDR_WIDTH-1:0] AWADDR,
-    output reg                  AWVALID,
-    input                       AWREADY,
-
-    output reg [DATA_WIDTH-1:0] WDATA,
-    output reg                  WVALID,
-    input                       WREADY,
-    output reg [3:0]            WSTRB,
-
-    input  [1:0]                BRESP,
-    input                       BVALID,
-    output reg                  BREADY,
-
-    output reg [ADDR_WIDTH-1:0] ARADDR,
-    output reg                  ARVALID,
-    input                       ARREADY,
-
-    input  [DATA_WIDTH-1:0]     RDATA,
-    input                       RVALID,
-    output reg                  RREADY,
-    input  [1:0]                RRESP
-);
-
-module APB_TOP #(
-    parameter ADDR_WIDTH = 32,
-    parameter DATA_WIDTH = 32,
-    parameter MUX_ADDR_WIDTH = 32,
-    parameter OP_ADDR_WIDTH = 2
-) (
-    input PCLK,
-    input PRESETn,
-    //--------AXI SIGNALS --------
-    input ACLK,
-    input ARESETn,
-    //AXI READ
-    input [ADDR_WIDTH-1:0] ARADDR,
-    input ARVALID,
-    output ARREADY,
-    output [DATA_WIDTH-1:0] RDATA,
-    output RVALID,
-    input RREADY,
-    output [1:0] RRESP,
-    //AXI WRITE
-    input [ADDR_WIDTH-1:0] AWADDR,
-    input AWVALID,
-    output AWREADY,
-    input [DATA_WIDTH-1:0] WDATA,
-    input WVALID,
-    output WREADY,
-    input [3:0] WSTRB,
-    // WRITE RESPONSE
-    output [1:0] BRESP,
-    output BVALID,
-    input BREADY,
-    // Error signal
-    output error
-);

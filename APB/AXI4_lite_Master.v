@@ -41,104 +41,154 @@ module axi4lite_master #(
     input  [1:0]                RRESP
 );
 
-    localparam S_IDLE    = 3'd0,
-               S_W_ADDR  = 3'd1,
-               S_W_RESP  = 3'd2,
-               S_R_ADDR  = 3'd3,
-               S_R_DATA  = 3'd4;
+    localparam M_IDLE    = 3'd0,
+               M_W_ADDR  = 3'd1,
+               M_W_RESP  = 3'd2,
+               M_R_ADDR  = 3'd3,
+               M_R_DATA  = 3'd4,
+               M_R_LATCH_DATA = 3'd5;
 
     reg [2:0] state, next_state;
 
     always @(posedge ACLK or negedge ARESETn) begin
         if(!ARESETn)
-            state <= S_IDLE;
+            state <= M_IDLE;
         else
             state <= next_state;
     end
 
-    always @(*) begin
-        next_state = state;
-        case(state)
-            S_IDLE:    if(start)                        next_state = write ? S_W_ADDR : S_R_ADDR;
-            S_W_ADDR:  if((AWVALID && AWREADY) &&
-                          (WVALID  && WREADY))          next_state = S_W_RESP;
-            S_W_RESP:  if(BVALID && BREADY)             next_state = S_IDLE;
-            S_R_ADDR:  if(ARVALID && ARREADY)           next_state = S_R_DATA;
-            S_R_DATA:  if(RVALID && RREADY)             next_state = S_IDLE;
-        endcase
-    end
 
-    always @(posedge ACLK or negedge ARESETn) begin
-        if(!ARESETn) begin
-            AWADDR <= 0; AWVALID <= 0;
-            WDATA  <= 0; WVALID  <= 0; WSTRB <= 4'b0000;
-            BREADY <= 0;
-            ARADDR <= 0; ARVALID <= 0;
-            RREADY <= 0;
-
-            busy <= 0;
-            done <= 0;
-            rdata <= 0;
-            resp <= 0;
-        end else begin
-            // defaults
-            done <= 0;
-            BREADY <= 0;
-            RREADY <= 0;
-
-            case(state)
-                S_IDLE: begin
-                    busy <= 0;
-                    AWVALID <= 0;
-                    WVALID <= 0;
-                    ARVALID <= 0;
-
-                    if(start) begin
-                        busy <= 1;
-                        if(write) begin
-                            AWADDR <= addr;
-                            WDATA <= wdata;
-                            WSTRB <= wstrb;
-                            AWVALID <= 1;
-                            WVALID <= 1;
-                        end else begin
-                            ARADDR <= addr;
-                            ARVALID <= 1;
-                        end
-                    end
-                end
-
-                S_W_ADDR: begin
-                    busy <= 1;
-                    if(AWREADY) AWVALID <= 0;
-                    if(WREADY)  WVALID <= 0;
-                end
-
-                S_W_RESP: begin
-                    busy <= 1;
-                    BREADY <= 1;
-                    if(BVALID) begin
-                        resp <= BRESP;
-                        done <= 1;
-                    end
-                end
-
-                S_R_ADDR: begin
-                    busy <= 1;
-                    if(ARREADY) ARVALID <= 0;
-                end
-
-                S_R_DATA: begin
-                    busy <= 1;
-                    RREADY <= 1;
-                    if(RVALID) begin
-                        rdata <= RDATA;
-                        resp <= RRESP;
-                        done <= 1;
-                    end
-                end
-            endcase
+always @(*) begin
+case(state)
+    M_IDLE: begin
+        if(start && write) begin
+            next_state = M_W_ADDR;
+        end
+        else if(start && !write) begin
+            next_state = M_R_ADDR;
+        end
+        else begin
+            next_state = M_IDLE;
         end
     end
+    M_W_ADDR: begin
+        if(AWREADY && WREADY) begin
+            next_state = M_W_RESP;
+        end
+        else begin
+            next_state =M_W_ADDR;
+        end
+    end
+    M_W_RESP: begin
+        if(BVALID) begin
+            next_state = M_IDLE;
+        end
+        else begin
+            next_state = M_W_RESP;
+        end
+    end
+    M_R_ADDR: begin
+        if(ARREADY) begin
+            next_state = M_R_DATA;
+        end
+        else begin
+            next_state = M_R_ADDR;
+        end
+    end
+    M_R_DATA: begin
+        if(RVALID) begin
+            next_state = M_R_LATCH_DATA;
+        end
+        else begin
+            next_state = M_R_DATA;
+        end
+        end
+    M_R_LATCH_DATA: begin
+            next_state = M_IDLE;
+    end
 
+    default: begin
+        next_state = M_IDLE;
+    end
+    
+endcase
+    end
+
+always @(posedge ACLK) begin
+    case(state)
+        M_IDLE: begin
+            busy <= 1'b0;
+            done <= 1'b0;
+            AWVALID <= 1'b0;
+            WVALID <= 1'b0;
+            BREADY <= 1'b0;
+            ARVALID <= 1'b0;
+            RREADY <= 1'b0;
+            if(start && write) begin
+                busy <= 1'b1;
+                // Prepare write address and data
+                AWADDR <= addr;
+                WDATA <= wdata;
+                WSTRB <= wstrb;
+                AWVALID <= 1'b1;
+                WVALID <= 1'b1;
+            end
+            else if(start && !write) begin
+                busy <= 1'b1;
+                // Prepare read address
+                ARADDR <= addr;
+                ARVALID <= 1'b1;
+            end
+        end
+        M_W_ADDR: begin
+            busy <= 1'b1;
+            done <= 1'b0;
+            if(AWREADY && WREADY) begin
+                AWVALID <= 1'b0;
+                WVALID <= 1'b0;
+
+            end
+        end
+        M_W_RESP: begin
+            busy <= 1'b1;
+            done <= 1'b0;
+            BREADY <= 1'b1;
+            if(BVALID) begin
+                resp <= BRESP;
+
+                done <= 1'b1;
+                busy <= 1'b0;
+            end
+        end
+        M_R_ADDR: begin
+            busy <= 1'b1;
+            done <= 1'b0;
+            BREADY <= 1'b0;
+            if(ARREADY) begin
+                ARVALID <= 1'b0;
+                RREADY <= 1'b1; // Ready to accept read data
+            end
+        end
+        M_R_DATA: begin
+            busy <= 1'b1;
+            done <= 1'b0;
+            end
+        M_R_LATCH_DATA: begin
+                rdata <= RDATA;
+                resp <= RRESP;
+                RREADY <= 1'b0;
+                done <= 1'b1;
+                busy <= 1'b0;
+        end
+        default: begin
+            busy <= 1'b0;
+            done <= 1'b0;
+            AWVALID <= 1'b0;
+            WVALID <= 1'b0;
+            BREADY <= 1'b0;
+            ARVALID <= 1'b0;
+            RREADY <= 1'b0;
+        end
+    endcase
+end
 endmodule
