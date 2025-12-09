@@ -28,7 +28,7 @@ wire [ADDR_WIDTH-1:0] AWADDR;
     wire                  AWVALID;
     wire [DATA_WIDTH-1:0] WDATA;
     wire                  WVALID;
-    wire [3:0]            WSTRB;
+    wire [3:0]            WSTRB_int;
     wire [1:0]            BRESP;
     wire                  BVALID;
 
@@ -70,7 +70,7 @@ axi4lite_master #(
         .WDATA(WDATA),
         .WVALID(WVALID),
         .WREADY(WREADY),
-        .WSTRB(WSTRB),
+        .WSTRB(WSTRB_int),
         .BRESP(BRESP),
         .BVALID(BVALID),
         .BREADY(BREADY),
@@ -108,7 +108,7 @@ axi4lite_master #(
         .WDATA(WDATA),
         .WVALID(WVALID),
         .WREADY(WREADY),
-        .WSTRB(WSTRB),
+        .WSTRB(WSTRB_int),
         // WRITE RESPONSE
         .BRESP(BRESP),
         .BVALID(BVALID),

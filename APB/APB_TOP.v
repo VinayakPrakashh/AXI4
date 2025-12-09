@@ -43,6 +43,7 @@ module APB_TOP #(
     wire pready_to_master;
     wire pslverr_to_master;
     wire [3:0] PSTRB_slave;
+    wire  [3:0] PSTRB;
 
     
     // MUX to Slaves signals
@@ -55,6 +56,7 @@ module APB_TOP #(
     wire [DATA_WIDTH-1:0] apb_wdata;
     wire [DATA_WIDTH-1:0] apb_rdata;
     wire transfer, read, write, apb_done;
+    
     // DUT instantiation
     //axi4-lite
     AXI4_lite #(
@@ -90,7 +92,7 @@ module APB_TOP #(
         .read(read),
         .write(write),
 
-        .PSTRB(PSTRB_slave[1:0]), // Assuming full byte write for simplicity
+        .PSTRB(PSTRB), // Assuming full byte write for simplicity
         .apb_waddr(apb_waddr),
         .apb_raddr(apb_raddr),
         .apb_wdata(apb_wdata),
@@ -121,7 +123,7 @@ module APB_TOP #(
         .transfer(transfer),
         .read(read),
         .write(write),
-        .WSTRB(WSTRB), // Assuming full byte write for simplicity
+        .WSTRB(PSTRB), // Assuming full byte write for simplicity
         // AXI4 simulation inputs
         .apb_waddr(apb_waddr),
         .apb_raddr(apb_raddr),
